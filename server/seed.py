@@ -2,8 +2,9 @@
 # 📚 Review With Students:
 # Seeding
 
+import ipdb
 from app import app
-from models import Production, db
+from models import CastMember, Production, db
 
 # 5. ✅ Imports
 # app from app
@@ -16,8 +17,8 @@ from models import Production, db
 # Info on application context: https://flask.palletsprojects.com/en/1.1.x/appcontext/
 
 with app.app_context():
-
     Production.query.delete()
+    CastMember.query.delete()
 
     p1 = Production(
         title="Hamlet",
@@ -60,8 +61,22 @@ with app.app_context():
     )
 
     db.session.add_all([p1, p2, p3, p4])
+    db.session.commit()
+
+    c1 = CastMember(name="First", production_id=p1.id)
+
+    c2 = CastMember(name="Second")
+
+    c3 = CastMember(name="Third")
+
+    db.session.add_all([c1, c2, c3])
 
     db.session.commit()
+
+    ipdb.set_trace()
+
+    print("done seeding")
+
 
 # 8.✅ Create a query to delete all existing records from Production
 

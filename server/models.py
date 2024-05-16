@@ -30,4 +30,22 @@ class Production(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
 
-    serialize_rules = ("-created_at", "-updated_at")
+    cast_members = db.relationship(
+        "CastMember", back_populates="production", cascade="all, delete-orphan"
+    )
+
+    serialize_rules = ("-created_at", "-updated_at", "-cast_members.production")
+
+
+class CastMember(db.Model, SerializerMixin):
+    __tablename__ = "cast_members"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    production_id = db.Column(
+        db.Integer, db.ForeignKey("productions.id"), nullable=False
+    )
+
+    production = db.relationship("Production", back_populates="cast_members")
+
+    serialize_rules = ("-production.cast_members",)
