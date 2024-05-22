@@ -4,6 +4,7 @@ from flask import Flask, jsonify, make_response, request
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 from models import CastMember, Production, db
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 api = Api(app)
@@ -26,19 +27,26 @@ def productions():
         return make_response(jsonify([prod.to_dict() for prod in productions]))
     if request.method == "POST":
         production_json = request.get_json()
-        production = Production(
-            title=production_json.get("title"),
-            genre=production_json.get("genre"),
-            director=production_json.get("director"),
-            description=production_json.get("description"),
-            budget=production_json.get("budget"),
-            image=production_json.get("image"),
-            ongoing=production_json.get("ongoing"),
-        )
-        db.session.add(production)
-        db.session.commit()
+        try:
+            production = Production(
+                title=production_json.get("title"),
+                genre=production_json.get("genre"),
+                director=production_json.get("director"),
+                description=production_json.get("description"),
+                budget=production_json.get("budget"),
+                image=production_json.get("image"),
+                ongoing=production_json.get("ongoing"),
+            )
 
-        return make_response(jsonify(production.to_dict()), 201)
+            db.session.add(production)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                return make_response({"error": "Title must be unique."}, 422)
+
+            return make_response(jsonify(production.to_dict()), 201)
+        except ValueError as e:
+            return make_response({"error": e.__str__()}, 422)
 
 
 @app.route("/productions/<int:id>", methods=["GET", "PATCH", "DELETE"])
@@ -69,10 +77,7 @@ class CastMembersResource(Resource):
 
     def post(self):
         cast_member_json = request.get_json()
-        cast_member = CastMember(
-            name=cast_member_json.get("name"),
-            production_id=cast_member_json.get("production_id"),
-        )
+        cast_member = CastMember(name=cast_member_json.get("name"))
         db.session.add(cast_member)
         db.session.commit()
 

@@ -4,7 +4,7 @@
 
 import ipdb
 from app import app
-from models import CastMember, Production, db
+from models import CastMember, Production, Role, db
 
 # 5. ✅ Imports
 # app from app
@@ -19,6 +19,7 @@ from models import CastMember, Production, db
 with app.app_context():
     Production.query.delete()
     CastMember.query.delete()
+    Role.query.delete()
 
     p1 = Production(
         title="Hamlet",
@@ -27,7 +28,7 @@ with app.app_context():
         description="The Tragedy of Hamlet, Prince of Denmark",
         budget=100000.00,
         image="https://upload.wikimedia.org/wikipedia/commons/6/6a/Edwin_Booth_Hamlet_1870.jpg",
-        ongoing=True,
+        ongoing=False,
     )
 
     p2 = Production(
@@ -63,13 +64,22 @@ with app.app_context():
     db.session.add_all([p1, p2, p3, p4])
     db.session.commit()
 
-    c1 = CastMember(name="First", production_id=p1.id)
+    c1 = CastMember(name="First")
 
     c2 = CastMember(name="Second")
 
     c3 = CastMember(name="Third")
 
     db.session.add_all([c1, c2, c3])
+
+    db.session.commit()
+
+    r1 = Role(cast_member_id=c1.id, production_id=p1.id, name="Hamlet")
+    r2 = Role(cast_member_id=c2.id, production_id=p1.id, name="Horatio")
+
+    r3 = Role(cast_member_id=c1.id, production_id=p4.id, name="Hamilton")
+
+    db.session.add_all([r1, r2, r3])
 
     db.session.commit()
 

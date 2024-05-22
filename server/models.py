@@ -3,6 +3,8 @@
 # Review MVC
 # SQLAlchemy import
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import validates
 from sqlalchemy_serializer import SerializerMixin
 
 # 📚 Review With Students:
@@ -20,7 +22,7 @@ class Production(db.Model, SerializerMixin):
     __tablename__ = "productions"
 
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String)
+    title = db.Column(db.String, unique=True)
     genre = db.Column(db.String)
     budget = db.Column(db.Float)
     image = db.Column(db.String)
@@ -30,11 +32,26 @@ class Production(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
 
-    cast_members = db.relationship(
-        "CastMember", back_populates="production", cascade="all, delete-orphan"
+    roles = db.relationship(
+        "Role", back_populates="production", cascade="all, delete-orphan"
     )
 
-    serialize_rules = ("-created_at", "-updated_at", "-cast_members.production")
+    @validates("title")
+    def validate_title(self, _, title):
+        if not isinstance(title, str):
+            raise ValueError("Title must be a string.")
+        if len(title) < 1:
+            raise ValueError("Title must have at least 1 character.")
+        return title
+
+    @validates("ongoing")
+    def validate_ongoing(self, _, ongoing):
+        if not isinstance(ongoing, bool):
+            raise ValueError("Ongoing must be a boolean.")
+
+    cast_members = association_proxy("roles", "cast_member")
+
+    serialize_rules = ("-created_at", "-updated_at", "-roles.production")
 
 
 class CastMember(db.Model, SerializerMixin):
@@ -42,10 +59,29 @@ class CastMember(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+
+    roles = db.relationship(
+        "Role", back_populates="cast_member", cascade="all, delete-orphan"
+    )
+
+    productions = association_proxy("roles", "production")
+
+    serialize_rules = ("-roles.cast_member", "productions", "-productions.roles")
+
+
+class Role(db.Model, SerializerMixin):
+    __tablename__ = "roles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
     production_id = db.Column(
         db.Integer, db.ForeignKey("productions.id"), nullable=False
     )
+    cast_member_id = db.Column(
+        db.Integer, db.ForeignKey("cast_members.id"), nullable=False
+    )
 
-    production = db.relationship("Production", back_populates="cast_members")
+    production = db.relationship("Production", back_populates="roles")
+    cast_member = db.relationship("CastMember", back_populates="roles")
 
-    serialize_rules = ("-production.cast_members",)
+    serialize_rules = ("-production.roles", "-cast_member.roles")
