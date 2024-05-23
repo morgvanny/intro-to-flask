@@ -2,8 +2,10 @@
 # Review models
 # Review MVC
 # SQLAlchemy import
+from config import flask_bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from sqlalchemy_serializer import SerializerMixin
 
@@ -85,3 +87,26 @@ class Role(db.Model, SerializerMixin):
     cast_member = db.relationship("CastMember", back_populates="roles")
 
     serialize_rules = ("-production.roles", "-cast_member.roles")
+
+
+class User(db.Model, SerializerMixin):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String, unique=True, nullable=False)
+    _password_hash = db.Column(db.String, nullable=False)
+
+    serialize_rules = ("-_password_hash",)
+
+    @hybrid_property
+    def password_hash(self):
+        raise Exception("Can't read password hashes")
+
+    @password_hash.setter
+    def password_hash(self, password):
+        self._password_hash = flask_bcrypt.generate_password_hash(password).decode(
+            "utf-8"
+        )
+
+    def authenticate(self, password):
+        return flask_bcrypt.check_password_hash(self._password_hash, password)

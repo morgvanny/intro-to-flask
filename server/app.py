@@ -1,21 +1,56 @@
 #!/usr/bin/env python3
 
-from flask import Flask, jsonify, make_response, request
+from config import app
+from flask import jsonify, make_response, request, session
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
-from models import CastMember, Production, db
+from models import CastMember, Production, User, db
 from sqlalchemy.exc import IntegrityError
 
-app = Flask(__name__)
 api = Api(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 migrate = Migrate(app, db, render_as_batch=True)
 db.init_app(app)
 
 
+@app.route("/sign_in", methods=["POST"])
+def sign_in():
+    import ipdb
+
+    ipdb.set_trace()
+    user_data = request.get_json()
+    user = User.query.filter_by(username=user_data.get("username")).first()
+    if not user:
+        return make_response(
+            {"message": f"No user exists with username: {user_data.get('username')}"},
+            404,
+        )
+    if not user.authenticate(user_data.get("password")):
+        return make_response({"message": "Incorrect username or password."}, 401)
+    session["user_id"] = user.id
+    return make_response(jsonify(user.to_dict()), 200)
+
+
+@app.route("/sign_out", methods=["DELETE"])
+def sign_out():
+    del session["user_id"]
+    return {}, 204
+
+
+@app.route("/me")
+def me():
+    user = db.session.get(User, session.get("user_id"))
+    if not user:
+        return {}, 401
+    return make_response(jsonify(user.to_dict()), 200)
+
+
 @app.route("/")
 def home():
+    print(session.get("user_id"))
+    import ipdb
+
+    ipdb.set_trace()
     return {"something": "whatever"}
 
 

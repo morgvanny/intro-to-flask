@@ -4,7 +4,7 @@
 
 import ipdb
 from app import app
-from models import CastMember, Production, Role, db
+from models import CastMember, Production, Role, User, db
 
 # 5. ✅ Imports
 # app from app
