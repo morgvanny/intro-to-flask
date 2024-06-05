@@ -53,7 +53,12 @@ class Production(db.Model, SerializerMixin):
 
     cast_members = association_proxy("roles", "cast_member")
 
-    serialize_rules = ("-created_at", "-updated_at", "-roles.production")
+    serialize_rules = (
+        "-created_at",
+        "-updated_at",
+        "-roles.production",
+        "cast_members",
+    )
 
 
 class CastMember(db.Model, SerializerMixin):
@@ -68,7 +73,13 @@ class CastMember(db.Model, SerializerMixin):
 
     productions = association_proxy("roles", "production")
 
-    serialize_rules = ("-roles.cast_member", "productions", "-productions.roles")
+    serialize_rules = (
+        "-roles.cast_member",
+        "productions",
+        "-productions.roles",
+        "-productions.cast_members",
+        "-roles.production",
+    )
 
 
 class Role(db.Model, SerializerMixin):
